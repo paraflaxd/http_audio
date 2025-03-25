@@ -1,16 +1,21 @@
 import asyncio
 import pyaudio
-import requests
+import ffmpeg
 
 
 STREAM_RATE=8000
 STREAM_ENDPOINT="http://192.168.1.196:8000/read-last"
 
 def write_to_stream(stream: pyaudio.Stream):
+    audio_stream_process = (
+        ffmpeg.input(STREAM_ENDPOINT, fflags="nobuffer")
+        .output("pipe:", format="s16le", ac=1, ar=STREAM_RATE, loglevel="quiet")
+        .run_async(pipe_stdout=True)
+    )
+
     while True:
-        audio_bytes = requests.get(STREAM_ENDPOINT).content
-        if audio_bytes:
-            stream.write(audio_bytes)
+        audio_bytes = audio_stream_process.stdout.read(1024)
+        stream.write(audio_bytes)
 
 async def test():
     p = pyaudio.PyAudio()
@@ -25,3 +30,4 @@ async def test():
     
 if __name__ == "__main__":
     asyncio.run(test())
+

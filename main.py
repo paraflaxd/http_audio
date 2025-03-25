@@ -20,6 +20,6 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
     
-@app.get("/read-last")
+@app.get("/stream-audio")
 async def get_last_temp_fahrenheit(response: Response):
     return StreamingResponse(aw.generate_audio(), media_type="audio/L16")
