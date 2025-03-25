@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 import threading
 
-from .raw_response import RawResponse
-from .audio_worker import AudioWorker
+from raw_response import RawResponse
+from audio_worker import AudioWorker
 
 DUMMY_DEVICE_INDEX=1
 RATE=8000
