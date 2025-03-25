@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Deque, Optional
+from collections import deque
 import pyaudio
 import threading
 
@@ -9,7 +9,7 @@ class AudioWorker:
         self._channels = channels
         self._buf_size = buf_size
         self._max_buf_size = max_buf_size
-        self._internal_buf = Deque(maxlen=max_buf_size // 2)  # max_buf_size in bytes, 2 bytes per frame
+        self._internal_buf = deque(maxlen=max_buf_size // 2)
         self._lock = threading.Lock()
         self._cond = threading.Condition(self._lock)
 
@@ -27,29 +27,28 @@ class AudioWorker:
         while True:
             yield self.__read()
 
-
     def __read(self) -> bytes:
-        frames_to_read = self._buf_size // (2 * self._channels)  # Bytes to frames
+        frames_to_read = self._buf_size // (2 * self._channels)
         print("__read waiting for cond, frames_to_read=" + str(frames_to_read))
         with self._cond:
-            while len(self._internal_buf) < frames_to_read:
+            while len(self._internal_buf) == 0:
+                print("No data yet, waiting...")
                 self._cond.wait()
-
-            data = b''.join(list(self._internal_buf)[-frames_to_read:])
-            print("cond finished waitign, returning data of length: " + str(len(data)))
+            frames = min(len(self._internal_buf), frames_to_read)
+            data = b''.join([self._internal_buf.popleft() for _ in range(frames)])
+            print("cond finished waiting, returning data of length: " + str(len(data)))
             return data
 
     def run(self):
         while True:
             try:
-                data = self._input_stream.read(self._buf_size)  # Read buf_size bytes
-                print("read " + str(len(data)) + " bytes from input stream");
+                data = self._input_stream.read(self._buf_size, exception_on_overflow=False)
+                print("read " + str(len(data)) + " bytes from input stream")
                 with self._lock:
-                    for i in range(0, len(data), 2):
-                        self._internal_buf.extend(data[i:i+2])  # Split into frames
-                    print("wrote to internal buffer, len: " + str(len(self._internal_buf)));
+                    frames = [data[i:i+2] for i in range(0, len(data), 2)]
+                    self._internal_buf.extend(frames)
+                    print("wrote to internal buffer, len: " + str(len(self._internal_buf)))
                     with self._cond:
                         self._cond.notify_all()
             except Exception as e:
                 print(f"Error reading audio: {e}")
-
