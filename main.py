@@ -9,16 +9,9 @@ from audio_worker import AudioWorker
 DUMMY_DEVICE_INDEX=1
 RATE=8000
 
-aw = AudioWorker(DUMMY_DEVICE_INDEX, RATE)
+aw = AudioWorker(30, RATE)
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    thread = threading.Thread(target=aw.run, daemon=True)
-    thread.start()
-
-    yield
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
     
 @app.get("/stream-audio")
 async def get_last_temp_fahrenheit(response: Response):
