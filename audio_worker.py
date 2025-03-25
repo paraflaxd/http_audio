@@ -1,4 +1,5 @@
 import pyaudio as p
+import time
 
 class AudioWorker:
     # max_buf_size default = 240 000 => 30 seconds of audio
@@ -19,6 +20,9 @@ class AudioWorker:
 
     def read(self) -> bytearray:
         read_size = self._buf_size
+        while len(self._internal_buf) < read_size:
+            time.sleep(0)
+
         del self._internal_buf[:-read_size]
         return self._internal_buf[-read_size:]
 
